@@ -1,0 +1,184 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Upload Song - MicLab Admin{% endblock %}
+
+{% block content %}
+<style>
+    .upload-form {
+        max-width: 600px;
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="file"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+
+    .form-group textarea {
+        font-family: monospace;
+        min-height: 200px;
+        resize: vertical;
+    }
+
+    .form-group small {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+        font-size: 12px;
+    }
+
+    .form-buttons {
+        margin-top: 30px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-submit {
+        background: #417690;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .btn-submit:hover {
+        background: #2e5266;
+    }
+
+    .btn-cancel {
+        background: #ccc;
+        color: #333;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-cancel:hover {
+        background: #bbb;
+    }
+
+    .error-messages {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .required {
+        color: red;
+    }
+</style>
+
+<h1>Upload New Song</h1>
+
+<div class="upload-form">
+    {% if form.non_field_errors %}
+    <div class="error-messages">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_title">Song Title <span class="required">*</span></label>
+            {{ form.title }}
+            {% if form.title.errors %}
+            <small style="color: red;">{{ form.title.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_artist">Artist Name <span class="required">*</span></label>
+            {{ form.artist }}
+            {% if form.artist.errors %}
+            <small style="color: red;">{{ form.artist.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_category">Category <span class="required">*</span></label>
+            {{ form.category }}
+            {% if form.category.errors %}
+            <small style="color: red;">{{ form.category.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_duration">Duration (seconds) <span class="required">*</span></label>
+            {{ form.duration }}
+            <small>How long is the song in seconds</small>
+            {% if form.duration.errors %}
+            <small style="color: red;">{{ form.duration.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_audio_file">Audio File (MP3, M4A, WAV) <span class="required">*</span></label>
+            {{ form.audio_file }}
+            <small>Upload the music file (MP3, M4A, or WAV)</small>
+            {% if form.audio_file.errors %}
+            <small style="color: red;">{{ form.audio_file.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_thumbnail">Thumbnail Image</label>
+            {{ form.thumbnail }}
+            <small>Optional: Song cover image</small>
+            {% if form.thumbnail.errors %}
+            <small style="color: red;">{{ form.thumbnail.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="id_lyrics_text">{{ form.lyrics_text.label }} <span class="required">*</span></label>
+            {{ form.lyrics_text }}
+            <small>Paste lyrics in LRC format: [MM:SS.MS] Lyric text<br>Example: [00:15.30] First line of lyrics</small>
+            {% if form.lyrics_text.errors %}
+            <small style="color: red;">{{ form.lyrics_text.errors }}</small>
+            {% endif %}
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="btn-submit">Upload Song</button>
+            <a href="/admin/" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

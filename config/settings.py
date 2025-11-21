@@ -1,3 +1,4 @@
+import pathlib
 from pathlib import Path
 import os
 
@@ -89,10 +90,26 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# Use persistent disk on Render, fallback to local for development
+if os.path.exists('/data'):
+    # Running on Render with persistent disk
+    STATIC_ROOT = '/data/staticfiles'
+    MEDIA_ROOT = '/data/media'
+else:
+    # Local development
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+# Ensure required subdirectories exist
+pathlib.Path(MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
+pathlib.Path(os.path.join(MEDIA_ROOT, 'songs', 'audio')
+             ).mkdir(parents=True, exist_ok=True)
+pathlib.Path(os.path.join(MEDIA_ROOT, 'myrecordings')
+             ).mkdir(parents=True, exist_ok=True)
+pathlib.Path(STATIC_ROOT).mkdir(parents=True, exist_ok=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

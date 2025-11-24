@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -90,7 +91,16 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# Use /data persistent disk on Render
+if os.path.exists('/data'):
+    MEDIA_ROOT = '/data/media'
+else:
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+# Ensure directories exist
+os.makedirs(os.path.join(MEDIA_ROOT, 'songs', 'audio'), exist_ok=True)
+os.makedirs(os.path.join(MEDIA_ROOT, 'myrecordings'), exist_ok=True)
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

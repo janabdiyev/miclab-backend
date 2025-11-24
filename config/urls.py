@@ -5,7 +5,6 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from songs.views import SongViewSet, CategoryViewSet, FavoriteViewSet, UserProfileViewSet, RecordingViewSet, upload_song_page
 from auth_app.views import AuthViewSet
-import os
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -22,8 +21,8 @@ urlpatterns = [
     path('api/', include(router.urls)),
 ]
 
-# Serve media files in development and production (Render)
-if settings.DEBUG or os.getenv('RENDER'):
+# Serve media files in development
+if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL,
                           document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL,

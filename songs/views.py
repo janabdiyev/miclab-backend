@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -293,7 +293,8 @@ def upload_song_page(request):
 
 # VOCAL SEPARATION ENDPOINT
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+# Allow without auth for now - change to IsAuthenticated after testing
+@permission_classes([AllowAny])
 def separate_vocals(request):
     """
     Separate vocals from mixed audio (voice + music bleed + backing track)

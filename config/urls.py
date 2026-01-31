@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from songs.views import SongViewSet, CategoryViewSet, FavoriteViewSet, UserProfileViewSet, RecordingViewSet, upload_song_page
+from songs.views import SongViewSet, CategoryViewSet, FavoriteViewSet, UserProfileViewSet, RecordingViewSet, upload_song_page, separate_vocals
 from auth_app.views import AuthViewSet
 
 # Create router and register viewsets
@@ -19,6 +19,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('upload/', upload_song_page, name='upload_song'),
     path('api/', include(router.urls)),
+    path('api/separate-vocals/', separate_vocals, name='separate-vocals'),
 ]
 
 # Serve media files in development

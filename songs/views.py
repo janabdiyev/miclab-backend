@@ -1,12 +1,14 @@
 from rest_framework import viewsets, status, permissions
 from datetime import datetime, timezone, timedelta
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.http import FileResponse
 from .models import Song, Category, Favorite, UserProfile, Recording
 from .serializers import SongDetailSerializer, SongListSerializer, CategorySerializer, FavoriteSerializer, UserProfileSerializer, RecordingSerializer
 from .forms import SongUploadForm
@@ -14,6 +16,9 @@ import os
 import subprocess
 import tempfile
 import time
+import uuid
+import torch
+import torchaudio
 
 
 class AllowAnonReadOnly(permissions.BasePermission):
@@ -286,3 +291,106 @@ def upload_song_page(request):
         form = SongUploadForm()
 
     return render(request, 'admin/song_upload.html', {'form': form})
+
+
+# VOCAL SEPARATION ENDPOINT
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def separate_vocals(request):
+    """
+    Separate vocals from mixed audio (voice + music bleed + backing track)
+    Returns isolated vocals only using Demucs
+    """
+    try:
+        audio_file = request.FILES.get('audio')
+        if not audio_file:
+            return Response({'error': 'audio file required'}, status=400)
+
+        print("🎵 Starting vocal separation...")
+
+        # Save uploaded file temporarily
+        temp_input = os.path.join(
+            tempfile.gettempdir(), f"mixed_{uuid.uuid4()}.m4a")
+        with open(temp_input, 'wb') as f:
+            for chunk in audio_file.chunks():
+                f.write(chunk)
+
+        print(f"📥 Saved input: {temp_input}")
+
+        # Convert to WAV for Demucs
+        temp_wav = temp_input.replace('.m4a', '.wav')
+        result = subprocess.run([
+            'ffmpeg', '-i', temp_input, '-ar', '44100', '-ac', '2', '-y', temp_wav
+        ], capture_output=True, text=True)
+
+        if result.returncode != 0:
+            print(f"❌ FFmpeg error: {result.stderr}")
+            return Response({'error': 'Audio conversion failed'}, status=500)
+
+        print(f"✅ Converted to WAV: {temp_wav}")
+
+        # Load Demucs model (htdemucs for vocals)
+        from demucs.pretrained import get_model
+        from demucs.apply import apply_model
+
+        print("📦 Loading Demucs model...")
+        model = get_model('htdemucs')
+        model.eval()
+
+        # Load audio
+        print("🎧 Loading audio...")
+        wav, sr = torchaudio.load(temp_wav)
+
+        # Ensure stereo
+        if wav.shape[0] == 1:
+            wav = wav.repeat(2, 1)
+
+        print(f"🎼 Audio shape: {wav.shape}, Sample rate: {sr}")
+
+        # Separate (htdemucs returns: drums, bass, other, vocals)
+        print("🔬 Separating vocals (this takes 10-30 seconds)...")
+        with torch.no_grad():
+            sources = apply_model(model, wav[None], device='cpu')
+
+        # Extract vocals (index 3)
+        vocals = sources[0, 3]  # [channels, samples]
+
+        print(f"🎤 Vocals extracted: {vocals.shape}")
+
+        # Save isolated vocals
+        output_wav = os.path.join(
+            tempfile.gettempdir(), f"vocals_{uuid.uuid4()}.wav")
+        torchaudio.save(output_wav, vocals, sr)
+
+        print(f"💾 Saved vocals WAV: {output_wav}")
+
+        # Convert to M4A
+        output_m4a = output_wav.replace('.wav', '.m4a')
+        result = subprocess.run([
+            'ffmpeg', '-i', output_wav, '-c:a', 'aac', '-b:a', '192k', '-y', output_m4a
+        ], capture_output=True, text=True)
+
+        if result.returncode != 0:
+            print(f"❌ FFmpeg M4A conversion error: {result.stderr}")
+            return Response({'error': 'Audio conversion failed'}, status=500)
+
+        print(f"✅ Converted to M4A: {output_m4a}")
+
+        # Cleanup
+        try:
+            os.remove(temp_input)
+            os.remove(temp_wav)
+            os.remove(output_wav)
+            print("🗑️ Cleaned up temp files")
+        except:
+            pass
+
+        # Return vocals file
+        print("✅ Sending vocals back to client")
+        return FileResponse(open(output_m4a, 'rb'), content_type='audio/m4a')
+
+    except Exception as e:
+        print(f"❌ Vocal separation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response({'error': str(e)}, status=500)

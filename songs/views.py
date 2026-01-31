@@ -17,8 +17,6 @@ import subprocess
 import tempfile
 import time
 import uuid
-import torch
-import torchaudio
 
 
 class AllowAnonReadOnly(permissions.BasePermission):
@@ -302,6 +300,16 @@ def separate_vocals(request):
     Returns isolated vocals only using Demucs
     """
     try:
+        # IMPORT INSIDE FUNCTION - Don't crash app if not installed
+        try:
+            import torch
+            import torchaudio
+            from demucs.pretrained import get_model
+            from demucs.apply import apply_model
+        except ImportError as e:
+            print(f"❌ Demucs not installed: {e}")
+            return Response({'error': 'Vocal separation not available - dependencies not installed'}, status=503)
+
         audio_file = request.FILES.get('audio')
         if not audio_file:
             return Response({'error': 'audio file required'}, status=400)
@@ -328,10 +336,6 @@ def separate_vocals(request):
             return Response({'error': 'Audio conversion failed'}, status=500)
 
         print(f"✅ Converted to WAV: {temp_wav}")
-
-        # Load Demucs model (htdemucs for vocals)
-        from demucs.pretrained import get_model
-        from demucs.apply import apply_model
 
         print("📦 Loading Demucs model...")
         model = get_model('htdemucs')
